@@ -34,13 +34,18 @@ Opens `http://localhost:8000` automatically. Leave `static/config.js` empty.
 3. (Optional, after step 3) set the `ALLOWED_ORIGINS` env var to your Vercel URL.
 
 ### 3. Deploy the frontend to Vercel
-1. Edit **`static/config.js`** → set your Render URL:
+1. Edit **`static/config.js`** → set your Render URL, then commit & push:
    ```js
    window.MAILFLOW_API_BASE = "https://mailflow-api.onrender.com";
    ```
-2. Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → import the repo.
-3. Vercel reads `vercel.json` and serves `static/` as the site root.
-4. Commit the `config.js` change and Vercel redeploys. Done — your dashboard is live.
+2. Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → import
+   `github.com/ankit-datatrainer/MailFlow`.
+3. In the import screen set:
+   - **Framework Preset:** `Other`
+   - **Root Directory:** `static`   ← important, this makes Vercel serve the UI folder
+   - Build Command / Output Directory: leave blank
+4. Click **Deploy**. Your dashboard goes live at `https://<project>.vercel.app`.
+5. Back on Render, set `ALLOWED_ORIGINS` to that Vercel URL so the API accepts it.
 
 ---
 
