@@ -1,0 +1,13 @@
+# Render.com blueprint — free always-on Python host for the MailFlow backend.
+# Push this repo to GitHub, then in Render: New + → Blueprint → pick this repo.
+services:
+  - type: web
+    name: mailflow-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: ALLOWED_ORIGINS
+        # Replace with your Vercel URL after the frontend is deployed.
+        value: "*"

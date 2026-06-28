@@ -1,0 +1,19 @@
+# Secrets — never commit real credentials
+config.json
+
+# Real recipient list (privacy) — keep only the sample in the repo
+recipients.xlsx
+
+# Runtime / generated
+sent_log.csv
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db

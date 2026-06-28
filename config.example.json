@@ -1,0 +1,7 @@
+{
+  "sender_email": "gilminahn@gmail.com",
+  "sender_name": "Your Name or Brand",
+  "app_password": "YOUR_16_CHAR_APP_PASSWORD",
+  "delay_seconds": 5,
+  "max_per_run": 20
+}

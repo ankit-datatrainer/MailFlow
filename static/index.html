@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MailFlow — Email Marketing Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="config.js"></script>
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg:         #0a0d08;
+  --surface:    #11150d;
+  --surface2:   #161b10;
+  --border:     rgba(137,197,73,0.10);
+  --border-act: rgba(137,197,73,0.5);
+  --text:       #eef3e6;
+  --muted:      #8a9579;
+  --accent:     #89C549;
+  --accent2:    #a3d96b;
+  --accent-dark:#6fa838;
+  --accent-glow:rgba(137,197,73,0.16);
+  --green:      #89C549;
+  --red:        #ef6f6f;
+  --yellow:     #f5c542;
+  --radius:     14px;
+  --radius-sm:  8px;
+  --transition: 0.22s cubic-bezier(.4,0,.2,1);
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* radial green tint glow at center + subtle grid overlay texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 60% 32%, rgba(137,197,73,0.16) 0%, rgba(137,197,73,0.05) 28%, transparent 60%);
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(137,197,73,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(137,197,73,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at 60% 32%, #000 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 60% 32%, #000 0%, transparent 75%);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.brand {
+  padding: 0 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-name {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #c2e89a, #6fa838);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+.brand-tag {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.steps {
+  flex: 1;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
+  position: relative;
+}
+.step-item:hover { background: rgba(255,255,255,0.04); }
+.step-item.active {
+  background: var(--accent);
+  box-shadow: 0 4px 18px rgba(137,197,73,0.30);
+}
+.step-item.completed .step-num { background: var(--green); border-color: var(--green); color: #0a0d08; }
+.step-item.completed .step-num::after { content: '✓'; }
+.step-item.active .step-label { color: #0a0d08; font-weight: 600; }
+
+.step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  flex-shrink: 0;
+  transition: all var(--transition);
+}
+.step-item.active .step-num {
+  border-color: #0a0d08;
+  color: #0a0d08;
+  background: rgba(10,13,8,0.18);
+}
+
+.step-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color var(--transition);
+}
+.step-item.active .step-label { color: var(--text); }
+
+.sidebar-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+.status-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--muted);
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted);
+  transition: background var(--transition);
+}
+.status-dot.running { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.4s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.main {
+  padding: 40px 48px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 36px;
+}
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.page-subtitle {
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+/* ============================================================
+   STEP PANELS
+   ============================================================ */
+.panel { display: none; }
+.panel.active { display: block; animation: fadeSlide 0.3s ease; }
+@keyframes fadeSlide {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: var(--text);
+}
+
+/* ============================================================
+   PLATFORM SELECTOR
+   ============================================================ */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.platform-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  background: var(--surface2);
+  user-select: none;
+}
+.platform-card:hover { border-color: rgba(137,197,73,0.4); transform: translateY(-2px); }
+.platform-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 32px rgba(137,197,73,0.15);
+}
+.platform-icon { font-size: 32px; margin-bottom: 8px; }
+.platform-name { font-size: 14px; font-weight: 600; }
+.platform-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.form-row { margin-bottom: 18px; }
+.form-row label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.form-control {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-control::placeholder { color: var(--muted); }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.connection-info {
+  font-size: 12px; color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-family: monospace;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all var(--transition);
+}
+.btn-primary {
+  background: linear-gradient(135deg, #89C549, #6fa838);
+  color: #0a0d08;
+  box-shadow: 0 4px 16px rgba(137,197,73,0.35);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(137,197,73,0.45); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1.5px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent2); }
+.btn-danger {
+  background: rgba(239,68,68,0.15);
+  color: var(--red);
+  border: 1.5px solid rgba(239,68,68,0.3);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+.btn-success {
+  background: rgba(34,197,94,0.15);
+  color: var(--green);
+  border: 1.5px solid rgba(34,197,94,0.3);
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+/* ============================================================
+   ALERT / STATUS
+   ============================================================ */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+.alert-error   { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+.alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--yellow); }
+.alert-info    { background: var(--accent-glow); border: 1px solid rgba(137,197,73,0.3); color: var(--accent2); }
+.alert { display: none; }
+.alert.show { display: flex; }
+
+/* ============================================================
+   UPLOAD ZONE
+   ============================================================ */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--surface2);
+  position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-title { font-size: 16px; font-weight: 600; }
+.upload-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* ============================================================
+   PREVIEW TABLE
+   ============================================================ */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: var(--surface2);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ============================================================
+   PLACEHOLDER CHIPS
+   ============================================================ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip {
+  background: var(--accent-glow);
+  border: 1px solid rgba(137,197,73,0.3);
+  color: var(--accent2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+/* ============================================================
+   TEMPLATE CARDS
+   ============================================================ */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.template-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--surface2);
+  position: relative;
+}
+.template-card:hover { border-color: rgba(137,197,73,0.4); transform: translateY(-2px); }
+.template-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.template-check {
+  position: absolute; top: 14px; right: 14px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff; font-size: 11px;
+  display: none; align-items: center; justify-content: center;
+}
+.template-card.selected .template-check { display: flex; }
+.template-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.template-subject {
+  font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 10px;
+}
+.template-fields { display: flex; flex-wrap: wrap; gap: 6px; }
+.template-field {
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  font-size: 10px;
+  font-family: monospace;
+  padding: 2px 7px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+/* ============================================================
+   DELAY CONTROLS
+   ============================================================ */
+.delay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  margin-top: 8px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(137,197,73,0.5);
+}
+.range-value {
+  font-size: 22px; font-weight: 700;
+  color: var(--accent2);
+  margin: 8px 0 4px;
+}
+.range-label { font-size: 11px; color: var(--muted); }
+
+/* ============================================================
+   SUMMARY CARD
+   ============================================================ */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.summary-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+.summary-key { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.summary-val { font-size: 15px; font-weight: 600; margin-top: 4px; }
+
+/* ============================================================
+   PROGRESS / LIVE FEED
+   ============================================================ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.stat-num {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.stat-num.green { color: var(--green); }
+.stat-num.red   { color: var(--red); }
+.stat-num.blue  { color: var(--accent2); }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.progress-bar-wrap {
+  background: var(--surface2);
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.progress-bar {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #6fa838, #a3d96b);
+  transition: width 0.4s ease;
+  width: 0%;
+}
+.progress-label { font-size: 12px; color: var(--muted); }
+
+.live-log {
+  background: #06060f;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  height: 260px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  margin-top: 16px;
+}
+.log-line { margin: 0; }
+.log-line.sent   { color: var(--green); }
+.log-line.failed { color: var(--red); }
+.log-line.info   { color: var(--muted); }
+.log-line.warn   { color: var(--yellow); }
+
+/* ============================================================
+   LOGS TABLE
+   ============================================================ */
+.log-status-sent   { color: var(--green); font-weight: 600; }
+.log-status-failed { color: var(--red); font-weight: 600; }
+
+/* ============================================================
+   MISC
+   ============================================================ */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.divider {
+  border: none; border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+.section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); margin-bottom: 14px;
+}
+
+.empty-state {
+  text-align: center; padding: 40px;
+  color: var(--muted); font-size: 14px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ======================================================
+       SIDEBAR
+       ====================================================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name">✉ MailFlow</div>
+      <div class="brand-tag">Email Marketing Suite</div>
+    </div>
+
+    <nav class="steps">
+      <div class="step-item active" data-step="1" onclick="goStep(1)">
+        <div class="step-num">1</div>
+        <div class="step-label">Connect Account</div>
+      </div>
+      <div class="step-item" data-step="2" onclick="goStep(2)">
+        <div class="step-num">2</div>
+        <div class="step-label">Upload Recipients</div>
+      </div>
+      <div class="step-item" data-step="3" onclick="goStep(3)">
+        <div class="step-num">3</div>
+        <div class="step-label">Choose Template</div>
+      </div>
+      <div class="step-item" data-step="4" onclick="goStep(4)">
+        <div class="step-num">4</div>
+        <div class="step-label">Configure & Send</div>
+      </div>
+      <div class="step-item" data-step="5" onclick="goStep(5)">
+        <div class="step-num">5</div>
+        <div class="step-label">Live Campaign</div>
+      </div>
+      <div class="step-item" data-step="6" onclick="goStep(6)">
+        <div class="step-num">6</div>
+        <div class="step-label">Sent Logs</div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-badge">
+        <div class="status-dot" id="globalStatusDot"></div>
+        <span id="globalStatusText">Idle</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ======================================================
+       MAIN
+       ====================================================== -->
+  <main class="main">
+
+    <!-- ── STEP 1: Connect Account ──────────────────────── -->
+    <div class="panel active" id="panel-1">
+      <div class="page-header">
+        <div class="page-title">Connect Your Email Account</div>
+        <div class="page-subtitle">Choose your mail platform and enter your credentials.</div>
+      </div>
+
+      <p class="section-label">Select Platform</p>
+      <div class="platform-grid">
+        <div class="platform-card" data-platform="gmail" onclick="selectPlatform('gmail')">
+          <div class="platform-icon">📧</div>
+          <div class="platform-name">Gmail</div>
+          <div class="platform-desc">Google Workspace / Gmail</div>
+        </div>
+        <div class="platform-card selected" data-platform="hostinger" onclick="selectPlatform('hostinger')">
+          <div class="platform-icon">🌐</div>
+          <div class="platform-name">Hostinger</div>
+          <div class="platform-desc">Custom domain email</div>
+        </div>
+        <div class="platform-card" data-platform="outlook" onclick="selectPlatform('outlook')">
+          <div class="platform-icon">💼</div>
+          <div class="platform-name">Outlook</div>
+          <div class="platform-desc">Microsoft / Office 365</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Account Credentials</div>
+
+        <div class="form-row">
+          <label>Email Address</label>
+          <input class="form-control" id="senderEmail" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-row">
+          <label>Sender Display Name</label>
+          <input class="form-control" id="senderName" placeholder="Your Name or Company" />
+        </div>
+        <div class="form-row">
+          <label>Password / App Password</label>
+          <input class="form-control" id="senderPass" type="password" placeholder="••••••••••••" />
+        </div>
+
+        <div id="connectionInfo" class="connection-info">
+          SMTP: smtp.hostinger.com:465 (SSL) &nbsp;|&nbsp; IMAP: imap.hostinger.com:993
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="testConnBtn" onclick="testConnection()">
+            🔌 Test Connection
+          </button>
+          <button class="btn btn-primary" onclick="goStep(2)">
+            Continue →
+          </button>
+        </div>
+
+        <div class="alert alert-success" id="connAlertOk">✓ Connection successful! SMTP and IMAP verified.</div>
+        <div class="alert alert-error"   id="connAlertErr"></div>
+        <div class="alert alert-warning" id="connAlertWarn"></div>
+      </div>
+
+      <div class="card" style="background:rgba(245,158,11,0.04); border-color:rgba(245,158,11,0.15);">
+        <div class="card-title" style="color:var(--yellow);">⚠ Gmail Users — App Password Required</div>
+        <div style="font-size:13px; color:var(--muted); line-height:1.7;">
+          Gmail requires a 16-character <b style="color:var(--text)">App Password</b> (not your regular password).
+          Enable 2FA → Google Account → Security → App Passwords → Select Mail → Generate.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Upload Recipients ───────────────────── -->
+    <div class="panel" id="panel-2">
+      <div class="page-header">
+        <div class="page-title">Upload Recipients</div>
+        <div class="page-subtitle">Excel file with at least <code style="color:var(--accent2)">name</code> and <code style="color:var(--accent2)">email</code> columns.</div>
+      </div>
+
+      <div class="card">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" accept=".xlsx,.xls" id="excelInput" onchange="handleFileUpload(this)" />
+          <div class="upload-icon">📊</div>
+          <div class="upload-title">Drop your Excel file here</div>
+          <div class="upload-sub">or click to browse — .xlsx / .xls supported</div>
+        </div>
+
+        <div class="alert alert-error" id="uploadErr"></div>
+      </div>
+
+      <div id="previewSection" style="display:none;">
+        <div class="card">
+          <div class="card-title">Preview — First 5 Rows</div>
+          <div class="table-wrap" id="previewTable"></div>
+
+          <hr class="divider" />
+          <div class="section-label">Available Placeholders</div>
+          <div class="chips" id="placeholderChips"></div>
+          <div style="font-size:12px; color:var(--muted); margin-top:8px;">
+            Use these <code style="color:var(--accent2)">{field}</code> names inside your email templates for personalization.
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goStep(3)">Continue →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Choose Template ──────────────────────── -->
+    <div class="panel" id="panel-3">
+      <div class="page-header">
+        <div class="page-title">Choose a Template</div>
+        <div class="page-subtitle">Select a campaign template. You can add more in the <code>templates/</code> folder.</div>
+      </div>
+
+      <div id="templateGrid" class="template-grid"></div>
+      <div class="alert alert-error" id="templateErr"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goStep(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Configure & Review ─────────────────── -->
+    <div class="panel" id="panel-4">
+      <div class="page-header">
+        <div class="page-title">Configure Campaign</div>
+        <div class="page-subtitle">Set the sending pace and review before launching.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Sending Settings</div>
+        <div class="delay-grid">
+          <div>
+            <div class="section-label">Delay Between Emails</div>
+            <div class="range-value" id="delayVal">5s</div>
+            <input type="range" id="delayRange" min="1" max="60" value="5" oninput="updateDelay(this.value)" />
+            <div class="range-label">seconds between each email</div>
+          </div>
+          <div>
+            <div class="section-label">Max Emails Per Run</div>
+            <div class="range-value" id="maxVal">100</div>
+            <input type="range" id="maxRange" min="5" max="500" step="5" value="100" oninput="updateMax(this.value)" />
+            <div class="range-label">cap for this session</div>
+          </div>
+          <div>
+            <div class="section-label">Estimated Duration</div>
+            <div class="range-value" id="estimateVal">—</div>
+            <div class="range-label">based on list size &amp; delay</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Campaign Summary</div>
+        <div class="summary-grid" id="summaryGrid"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+        <button class="btn btn-primary" id="launchBtn" onclick="launchCampaign()">
+          🚀 Start Campaign
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: Live Campaign ────────────────────────── -->
+    <div class="panel" id="panel-5">
+      <div class="page-header">
+        <div class="page-title">Live Campaign</div>
+        <div class="page-subtitle">Real-time progress of your email send.</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num green" id="statSent">0</div>
+          <div class="stat-label">Sent</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num red" id="statFailed">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num blue" id="statTotal">—</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-label" id="progressLabel">Waiting to start…</div>
+
+        <div class="live-log" id="liveLog">
+          <p class="log-line info">— Campaign log will appear here —</p>
+        </div>
+
+        <div class="btn-row" style="margin-top:16px;">
+          <button class="btn btn-danger" id="stopBtn" onclick="stopCampaign()" style="display:none;">
+            ■ Stop Campaign
+          </button>
+          <button class="btn btn-success" id="viewLogsBtn" onclick="goStep(6)" style="display:none;">
+            View Sent Logs →
+          </button>
+        </div>
+
+        <div class="alert alert-success" id="doneAlert"></div>
+        <div class="alert alert-error"   id="errorAlert"></div>
+      </div>
+    </div>
+
+    <!-- ── STEP 6: Sent Logs ────────────────────────────── -->
+    <div class="panel" id="panel-6">
+      <div class="page-header">
+        <div class="page-title">Sent Logs</div>
+        <div class="page-subtitle">History of all emails sent across all campaigns.</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div class="card-title" style="margin:0;">Recent Activity</div>
+          <button class="btn btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="loadLogs()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap" id="logsTable">
+          <div class="empty-state">Loading logs…</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+/* ──────────────────────────────────────────────────────────
+   BACKEND URL CONFIG
+   - Leave '' when the Python backend serves this page (local / Render).
+   - When hosting THIS page on Vercel as a static site, set it to your
+     deployed backend, e.g. 'https://mailflow-api.onrender.com'
+   ────────────────────────────────────────────────────────── */
+const API = (window.MAILFLOW_API_BASE || '').replace(/\/+$/, '');
+
+/* ── State ─────────────────────────────────────────────── */
+const state = {
+  platform: 'hostinger',
+  email: '',
+  password: '',
+  senderName: '',
+  excelData: null,        // Uint8Array
+  excelFilename: '',
+  recipients: [],
+  headers: [],
+  campaign: null,
+  delaySeconds: 5,
+  maxPerRun: 100,
+  currentStep: 1,
+};
+
+/* Fallback presets so the UI renders even with no backend (Vercel static). */
+const presets = {
+  gmail:     { smtp_host: 'smtp.gmail.com',     smtp_port: 587, smtp_security: 'starttls', imap_host: 'imap.gmail.com',         imap_port: 993, sent_folder: '[Gmail]/Sent Mail' },
+  hostinger: { smtp_host: 'smtp.hostinger.com', smtp_port: 465, smtp_security: 'ssl',      imap_host: 'imap.hostinger.com',     imap_port: 993, sent_folder: 'INBOX.Sent' },
+  outlook:   { smtp_host: 'smtp.office365.com', smtp_port: 587, smtp_security: 'starttls', imap_host: 'outlook.office365.com',  imap_port: 993, sent_folder: 'Sent Items' },
+};
+
+let backendOnline = false;
+
+/* ── Init ──────────────────────────────────────────────── */
+async function init() {
+  updateConnectionInfo();
+  updateEstimate();
+
+  // Try to reach the backend; degrade gracefully if it's not configured yet.
+  try {
+    const data = await fetch(API + '/api/presets').then(r => r.json());
+    Object.assign(presets, data);
+    backendOnline = true;
+    await loadTemplates();
+    updateConnectionInfo();
+
+    const st = await fetch(API + '/api/status').then(r => r.json());
+    if (st.running) { goStep(5); attachSSE(); }
+  } catch (e) {
+    backendOnline = false;
+    showBackendBanner();
+  }
+}
+
+function showBackendBanner() {
+  if (document.getElementById('backendBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'backendBanner';
+  b.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:99;background:rgba(245,197,66,0.12);' +
+    'border:1px solid rgba(245,197,66,0.35);color:#f5c542;padding:12px 16px;border-radius:10px;' +
+    'font-size:12.5px;max-width:320px;line-height:1.5;backdrop-filter:blur(8px);';
+  b.innerHTML = '⚠ <b>Backend not connected.</b><br>The UI is live, but sending needs the Python backend. ' +
+    'Set its URL in <code>static/config.js</code>. See <code>DEPLOY.md</code>.';
+  document.body.appendChild(b);
+}
+
+/* ── Navigation ────────────────────────────────────────── */
+function goStep(n) {
+  state.currentStep = n;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${n}`).classList.add('active');
+
+  document.querySelectorAll('.step-item').forEach(s => {
+    const sn = parseInt(s.dataset.step);
+    s.classList.toggle('active', sn === n);
+    s.classList.toggle('completed', sn < n);
+  });
+
+  if (n === 4) buildSummary();
+  if (n === 6) loadLogs();
+}
+
+/* ── Platform Select ───────────────────────────────────── */
+function selectPlatform(p) {
+  state.platform = p;
+  document.querySelectorAll('.platform-card').forEach(c =>
+    c.classList.toggle('selected', c.dataset.platform === p));
+  updateConnectionInfo();
+}
+
+function updateConnectionInfo() {
+  const pr = presets[state.platform];
+  if (!pr) return;
+  const sec = pr.smtp_security === 'ssl' ? 'SSL' : 'STARTTLS';
+  document.getElementById('connectionInfo').textContent =
+    `SMTP: ${pr.smtp_host}:${pr.smtp_port} (${sec})  |  IMAP: ${pr.imap_host}:${pr.imap_port}  |  Sent: ${pr.sent_folder}`;
+}
+
+/* ── Test Connection ───────────────────────────────────── */
+async function testConnection() {
+  const btn = document.getElementById('testConnBtn');
+  hideAlerts('conn');
+  state.email    = document.getElementById('senderEmail').value.trim();
+  state.password = document.getElementById('senderPass').value;
+  state.senderName = document.getElementById('senderName').value.trim() || state.email;
+
+  if (!state.email || !state.password) {
+    showAlert('connAlertErr', '✗ Please enter email and password first.');
+    return;
+  }
+
+  btn.innerHTML = '<span class="spinner"></span> Testing…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(API + '/api/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: state.email, password: state.password, platform: state.platform }),
+    }).then(r => r.json());
+
+    if (res.success) {
+      showAlert('connAlertOk');
+    } else {
+      const details = [];
+      if (res.smtp !== 'ok') details.push(`SMTP: ${res.smtp}`);
+      if (res.imap !== 'ok') details.push(`IMAP: ${res.imap}`);
+      showAlert('connAlertErr', `✗ Connection failed — ${details.join(' | ')}`);
+    }
+  } catch (e) {
+    showAlert('connAlertErr', `✗ Request error: ${e.message}`);
+  }
+
+  btn.innerHTML = '🔌 Test Connection';
+  btn.disabled = false;
+}
+
+/* ── Excel Upload ──────────────────────────────────────── */
+async function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  hideAlerts('upload');
+  document.getElementById('previewSection').style.display = 'none';
+
+  const arrayBuffer = await file.arrayBuffer();
+  state.excelData = new Uint8Array(arrayBuffer);
+  state.excelFilename = file.name;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(API + '/api/upload-excel', { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json();
+      showAlert('uploadErr', `✗ ${err.detail}`);
+      return;
+    }
+    const data = await res.json();
+    state.headers = data.headers;
+    state.recipients = data.preview;   // full count tracked separately
+    state._totalRecipients = data.total;
+
+    renderPreviewTable(data.headers, data.preview);
+    renderChips(data.headers);
+    document.getElementById('previewSection').style.display = 'block';
+  } catch (e) {
+    showAlert('uploadErr', `✗ Upload failed: ${e.message}`);
+  }
+}
+
+function renderPreviewTable(headers, rows) {
+  const cols = headers.filter(h => h);
+  const thead = cols.map(h => `<th>{${h}}</th>`).join('');
+  const tbody = rows.map(r =>
+    `<tr>${cols.map(h => `<td>${r[h] ?? ''}</td>`).join('')}</tr>`
+  ).join('');
+  document.getElementById('previewTable').innerHTML =
+    `<table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+}
+
+function renderChips(headers) {
+  document.getElementById('placeholderChips').innerHTML =
+    headers.filter(h => h).map(h => `<span class="chip">{${h}}</span>`).join('');
+}
+
+/* ── Drag & Drop ───────────────────────────────────────── */
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('excelInput').files = dt.files;
+    handleFileUpload(document.getElementById('excelInput'));
+  }
+});
+
+/* ── Templates ─────────────────────────────────────────── */
+async function loadTemplates() {
+  try {
+    const templates = await fetch(API + '/api/templates').then(r => r.json());
+    const grid = document.getElementById('templateGrid');
+
+    if (!templates.length) {
+      grid.innerHTML = '<div class="empty-state">No templates found. Add folders in the <code>templates/</code> directory.</div>';
+      return;
+    }
+
+    grid.innerHTML = templates.map(t => `
+      <div class="template-card" data-name="${t.name}" onclick="selectTemplate('${t.name}')">
+        <div class="template-check">✓</div>
+        <div class="template-name">${capitalize(t.name)}</div>
+        <div class="template-subject">${t.subject}</div>
+        <div class="template-fields">
+          ${t.fields.map(f => `<span class="template-field">{${f}}</span>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('templateErr').textContent = 'Could not load templates.';
+    document.getElementById('templateErr').classList.add('show');
+  }
+}
+
+function selectTemplate(name) {
+  state.campaign = name;
+  document.querySelectorAll('.template-card').forEach(c =>
+    c.classList.toggle('selected', c.dataset.name === name));
+}
+
+/* ── Delay / Max Controls ──────────────────────────────── */
+function updateDelay(v) {
+  state.delaySeconds = parseInt(v);
+  document.getElementById('delayVal').textContent = v + 's';
+  updateEstimate();
+}
+function updateMax(v) {
+  state.maxPerRun = parseInt(v);
+  document.getElementById('maxVal').textContent = v;
+  updateEstimate();
+}
+function updateEstimate() {
+  const count = Math.min(state._totalRecipients || 0, state.maxPerRun);
+  if (!count) { document.getElementById('estimateVal').textContent = '—'; return; }
+  const secs = count * state.delaySeconds;
+  const mins = Math.floor(secs / 60);
+  const s = secs % 60;
+  document.getElementById('estimateVal').textContent = mins > 0 ? `~${mins}m ${s}s` : `~${s}s`;
+}
+
+/* ── Summary ───────────────────────────────────────────── */
+function buildSummary() {
+  const count = Math.min(state._totalRecipients || 0, state.maxPerRun);
+  const items = [
+    ['Platform',   capitalize(state.platform)],
+    ['From',       state.email || '(not set)'],
+    ['Template',   state.campaign ? capitalize(state.campaign) : '(not selected)'],
+    ['Recipients', state._totalRecipients ? `${state._totalRecipients} total (sending ${count})` : '(no file)'],
+    ['Delay',      `${state.delaySeconds}s between emails`],
+    ['Max Per Run', state.maxPerRun],
+  ];
+  document.getElementById('summaryGrid').innerHTML = items.map(([k,v]) => `
+    <div class="summary-item">
+      <div class="summary-key">${k}</div>
+      <div class="summary-val">${v}</div>
+    </div>
+  `).join('');
+}
+
+/* ── Launch ────────────────────────────────────────────── */
+async function launchCampaign() {
+  // Sync credential fields in case user skipped test
+  state.email      = document.getElementById('senderEmail').value.trim();
+  state.password   = document.getElementById('senderPass').value;
+  state.senderName = document.getElementById('senderName').value.trim() || state.email;
+
+  if (!state.email || !state.password) { alert('Please enter your email and password in Step 1.'); return; }
+  if (!state.excelData)                { alert('Please upload an Excel file in Step 2.'); return; }
+  if (!state.campaign)                 { alert('Please select a template in Step 3.'); return; }
+
+  const btn = document.getElementById('launchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Starting…';
+
+  try {
+    const payload = {
+      platform:     state.platform,
+      email:        state.email,
+      password:     state.password,
+      sender_name:  state.senderName,
+      campaign:     state.campaign,
+      delay_seconds: state.delaySeconds,
+      max_per_run:  state.maxPerRun,
+      excel_data:   Array.from(state.excelData),
+    };
+
+    const res = await fetch(API + '/api/start-campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Failed to start: ${err.detail}`);
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Start Campaign';
+      return;
+    }
+
+    goStep(5);
+    resetLivePanel();
+    attachSSE();
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Start Campaign';
+  }
+}
+
+/* ── SSE Progress ──────────────────────────────────────── */
+let _sse = null;
+
+function attachSSE() {
+  if (_sse) _sse.close();
+  _sse = new EventSource(API + '/api/campaign-events');
+  document.getElementById('stopBtn').style.display = 'inline-flex';
+  setGlobalStatus(true);
+
+  _sse.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    handleCampaignEvent(ev);
+  };
+
+  _sse.onerror = () => {
+    addLog('Connection to server lost.', 'warn');
+    _sse.close();
+  };
+}
+
+function handleCampaignEvent(ev) {
+  if (ev.type === 'start') {
+    document.getElementById('statTotal').textContent = ev.total;
+    addLog(`Campaign started — ${ev.total} emails queued.`, 'info');
+  }
+
+  if (ev.type === 'progress') {
+    document.getElementById('statSent').textContent   = ev.sent;
+    document.getElementById('statFailed').textContent = ev.failed;
+    const pct = Math.round((ev.index / ev.total) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${ev.index} / ${ev.total}  (${pct}%)`;
+    const cls = ev.status === 'sent' ? 'sent' : 'failed';
+    const icon = ev.status === 'sent' ? '✓' : '✗';
+    addLog(`${icon} ${ev.email}`, cls);
+  }
+
+  if (ev.type === 'warning') {
+    addLog(`⚠ ${ev.message}`, 'warn');
+  }
+
+  if (ev.type === 'done') {
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('viewLogsBtn').style.display = 'inline-flex';
+    showAlert('doneAlert', `✓ ${ev.message}`);
+    addLog(`— ${ev.message} —`, 'info');
+    setGlobalStatus(false);
+    document.getElementById('launchBtn').disabled = false;
+    document.getElementById('launchBtn').innerHTML = '🚀 Start Campaign';
+    _sse.close();
+  }
+
+  if (ev.type === 'error') {
+    showAlert('errorAlert', `✗ ${ev.message}`);
+    addLog(`ERROR: ${ev.message}`, 'failed');
+    document.getElementById('stopBtn').style.display = 'none';
+    setGlobalStatus(false);
+    _sse.close();
+  }
+
+  if (ev.type === 'stopped') {
+    addLog(`Campaign stopped. Sent: ${ev.sent}, Failed: ${ev.failed}`, 'warn');
+    document.getElementById('stopBtn').style.display = 'none';
+    document.getElementById('viewLogsBtn').style.display = 'inline-flex';
+    setGlobalStatus(false);
+    _sse.close();
+  }
+}
+
+function resetLivePanel() {
+  document.getElementById('statSent').textContent   = '0';
+  document.getElementById('statFailed').textContent = '0';
+  document.getElementById('statTotal').textContent  = '—';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressLabel').textContent = 'Connecting…';
+  document.getElementById('liveLog').innerHTML = '';
+  document.getElementById('doneAlert').classList.remove('show');
+  document.getElementById('errorAlert').classList.remove('show');
+  document.getElementById('viewLogsBtn').style.display = 'none';
+}
+
+async function stopCampaign() {
+  await fetch(API + '/api/stop-campaign', { method: 'POST' });
+  addLog('Stop requested…', 'warn');
+}
+
+function addLog(msg, cls = 'info') {
+  const log = document.getElementById('liveLog');
+  const p = document.createElement('p');
+  p.className = `log-line ${cls}`;
+  const ts = new Date().toLocaleTimeString();
+  p.textContent = `[${ts}] ${msg}`;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+/* ── Logs ──────────────────────────────────────────────── */
+async function loadLogs() {
+  const res = await fetch(API + '/api/logs?limit=100').then(r => r.json());
+  const wrap = document.getElementById('logsTable');
+
+  if (!res.length) {
+    wrap.innerHTML = '<div class="empty-state">No logs yet. Send your first campaign!</div>';
+    return;
+  }
+
+  const rows = [...res].reverse().map(r => `
+    <tr>
+      <td>${r.timestamp}</td>
+      <td>${r.campaign}</td>
+      <td>${r.email}</td>
+      <td class="log-status-${r.status}">${r.status}</td>
+      <td style="color:var(--muted); font-size:12px;">${r.detail || ''}</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Time</th><th>Campaign</th><th>Email</th><th>Status</th><th>Detail</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ── Helpers ───────────────────────────────────────────── */
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (msg) el.textContent = msg;
+  el.classList.add('show');
+}
+function hideAlerts(prefix) {
+  document.querySelectorAll(`[id^="${prefix}Alert"]`).forEach(el => el.classList.remove('show'));
+}
+function capitalize(s) { return s.replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
+function setGlobalStatus(running) {
+  document.getElementById('globalStatusDot').className = 'status-dot' + (running ? ' running' : '');
+  document.getElementById('globalStatusText').textContent = running ? 'Campaign Running' : 'Idle';
+}
+
+/* ── Boot ──────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>
