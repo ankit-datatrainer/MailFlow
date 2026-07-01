@@ -426,6 +426,30 @@ body::after {
 .upload-title { font-size: 16px; font-weight: 600; }
 .upload-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
+/* File-loaded info bar (with Remove) */
+.file-info-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 14px; margin-bottom: 18px;
+  background: var(--accent-glow);
+  border: 1px solid rgba(137,197,73,0.3);
+  border-radius: var(--radius-sm);
+}
+.file-info-left { display: flex; align-items: center; gap: 12px; }
+.file-info-left i { width: 22px; height: 22px; color: var(--accent2); }
+.file-info-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.file-info-meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.btn-remove-file {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--red);
+  background: rgba(239,111,111,0.1);
+  border: 1px solid rgba(239,111,111,0.3);
+  cursor: pointer; transition: all var(--transition);
+}
+.btn-remove-file:hover { background: rgba(239,111,111,0.2); }
+.btn-remove-file i { width: 14px; height: 14px; }
+
 /* ============================================================
    PREVIEW TABLE
    ============================================================ */
@@ -970,6 +994,18 @@ input[type=range]::-webkit-slider-thumb {
 
       <div id="previewSection" style="display:none;">
         <div class="card">
+          <div class="file-info-bar">
+            <div class="file-info-left">
+              <i data-lucide="file-spreadsheet"></i>
+              <div>
+                <div class="file-info-name" id="fileInfoName">file.xlsx</div>
+                <div class="file-info-meta" id="fileInfoMeta">— recipients</div>
+              </div>
+            </div>
+            <button class="btn-remove-file" onclick="removeFile()">
+              <i data-lucide="trash-2"></i> Remove
+            </button>
+          </div>
           <div class="card-title">Preview — First 5 Rows</div>
           <div class="table-wrap" id="previewTable"></div>
 
@@ -1230,10 +1266,101 @@ const presets = {
 
 let backendOnline = false;
 
+/* ── Persistence (survives page refresh) ───────────────── */
+const WIZARD_KEY = 'mf_wizard';
+
+function u8ToB64(u8) {
+  let s = ''; const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk) s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+  return btoa(s);
+}
+function b64ToU8(b64) {
+  const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+// Save the whole wizard so a refresh keeps everything the user selected.
+// Password is kept in sessionStorage only (cleared when the tab is closed).
+function saveState() {
+  try {
+    const snap = {
+      platform: state.platform, email: state.email, senderName: state.senderName,
+      campaign: state.campaign, delaySeconds: state.delaySeconds, maxPerRun: state.maxPerRun,
+      excelFilename: state.excelFilename, headers: state.headers,
+      preview: state.recipients, total: state._totalRecipients || 0,
+    };
+    if (state.excelData) snap.excelB64 = u8ToB64(state.excelData);
+    localStorage.setItem(WIZARD_KEY, JSON.stringify(snap));
+    if (state.password) sessionStorage.setItem('mf_pw', state.password);
+    else sessionStorage.removeItem('mf_pw');
+  } catch (e) { /* quota exceeded — data still lives in memory this session */ }
+}
+
+// Rehydrate the UI from a saved snapshot on load.
+function restoreWizard() {
+  let snap;
+  try { snap = JSON.parse(localStorage.getItem(WIZARD_KEY)); } catch (e) {}
+  if (!snap) return;
+
+  if (snap.platform) selectPlatform(snap.platform);
+  if (snap.email)      { state.email = snap.email;           document.getElementById('senderEmail').value = snap.email; }
+  if (snap.senderName) { state.senderName = snap.senderName; document.getElementById('senderName').value  = snap.senderName; }
+  const pw = sessionStorage.getItem('mf_pw');
+  if (pw) { state.password = pw; document.getElementById('senderPass').value = pw; }
+
+  if (snap.delaySeconds) { document.getElementById('delayRange').value = snap.delaySeconds; updateDelay(snap.delaySeconds); }
+  if (snap.maxPerRun)    { document.getElementById('maxRange').value  = snap.maxPerRun;     updateMax(snap.maxPerRun); }
+  if (snap.campaign) state.campaign = snap.campaign;
+
+  // Restore the uploaded Excel + its preview (the key requirement).
+  if (snap.excelB64) {
+    try { state.excelData = b64ToU8(snap.excelB64); } catch (e) {}
+    state.excelFilename    = snap.excelFilename || 'recipients.xlsx';
+    state.headers          = snap.headers || [];
+    state.recipients       = snap.preview || [];
+    state._totalRecipients = snap.total || 0;
+    renderPreviewTable(state.headers, state.recipients);
+    renderChips(state.headers);
+    showFileInfo();
+    document.getElementById('previewSection').style.display = 'block';
+  }
+  updateEstimate();
+  if (window.lucide) lucide.createIcons();
+}
+
+function showFileInfo() {
+  document.getElementById('fileInfoName').textContent = state.excelFilename || 'recipients.xlsx';
+  document.getElementById('fileInfoMeta').textContent =
+    `${state._totalRecipients || 0} recipients • ${(state.headers || []).filter(h => h).length} columns`;
+}
+
+// Manual removal — clears the file everywhere; a refresh alone never clears it.
+function removeFile() {
+  state.excelData = null; state.excelFilename = ''; state.headers = [];
+  state.recipients = []; state._totalRecipients = 0;
+  document.getElementById('excelInput').value = '';
+  document.getElementById('previewSection').style.display = 'none';
+  saveState();          // rewrites snapshot without the excel
+  updateEstimate();
+}
+
 /* ── Init ──────────────────────────────────────────────── */
 async function init() {
+  restoreWizard();          // bring back everything from a previous session first
   updateConnectionInfo();
   updateEstimate();
+
+  // Persist credential fields as the user types them.
+  ['senderEmail', 'senderName', 'senderPass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => {
+      state.email      = document.getElementById('senderEmail').value.trim();
+      state.senderName = document.getElementById('senderName').value.trim();
+      state.password   = document.getElementById('senderPass').value;
+      saveState();
+    });
+  });
 
   // Try to reach the backend; degrade gracefully if it's not configured yet.
   try {
@@ -1285,6 +1412,7 @@ function selectPlatform(p) {
   document.querySelectorAll('.platform-card').forEach(c =>
     c.classList.toggle('selected', c.dataset.platform === p));
   updateConnectionInfo();
+  saveState();
 }
 
 function updateConnectionInfo() {
@@ -1362,7 +1490,10 @@ async function handleFileUpload(input) {
 
     renderPreviewTable(data.headers, data.preview);
     renderChips(data.headers);
+    showFileInfo();
     document.getElementById('previewSection').style.display = 'block';
+    if (window.lucide) lucide.createIcons();
+    saveState();               // persist the uploaded file across refreshes
   } catch (e) {
     showAlert('uploadErr', `<i data-lucide="x"></i> Upload failed: ${e.message}`);
   }
@@ -1454,6 +1585,7 @@ function selectTemplate(name) {
   localStorage.setItem('mf_campaign', name);   // persist selection
   document.querySelectorAll('.template-card').forEach(c =>
     c.classList.toggle('selected', c.dataset.name === name));
+  saveState();
 }
 
 /* ── Template Preview (existing templates) ─────────────── */
@@ -1618,11 +1750,13 @@ function updateDelay(v) {
   state.delaySeconds = parseInt(v);
   document.getElementById('delayVal').textContent = v + 's';
   updateEstimate();
+  saveState();
 }
 function updateMax(v) {
   state.maxPerRun = parseInt(v);
   document.getElementById('maxVal').textContent = v;
   updateEstimate();
+  saveState();
 }
 function updateEstimate() {
   const count = Math.min(state._totalRecipients || 0, state.maxPerRun);
