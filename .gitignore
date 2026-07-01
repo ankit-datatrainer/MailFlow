@@ -17,3 +17,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code local permission state (per-machine, not for the repo)
+.claude/settings.json
+.claude/settings.local.json
