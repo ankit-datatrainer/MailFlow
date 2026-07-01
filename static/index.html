@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MailFlow — Email Marketing Dashboard</title>
+<link rel="icon" type="image/png" href="/static/favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <script src="config.js"></script>
@@ -117,53 +118,62 @@ body::after {
 
 .steps {
   flex: 1;
-  padding: 24px 16px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 20px;
+  position: relative;
 }
-
+.steps::before {
+  content: '';
+  position: absolute;
+  left: 39px;
+  top: 48px;
+  bottom: 64px;
+  width: 2px;
+  background: var(--border);
+  z-index: 0;
+}
 .step-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  border-radius: 99px;
+  gap: 16px;
   cursor: pointer;
-  transition: background var(--transition), box-shadow var(--transition);
   position: relative;
+  z-index: 1;
+  transition: all var(--transition);
 }
-.step-item:hover { background: rgba(255,255,255,0.04); }
-.step-item.active {
+.step-item:hover .step-label { color: var(--text); }
+.step-item.active .step-num {
+  border-color: var(--accent);
   background: var(--accent);
-  box-shadow: 0 4px 18px rgba(137,197,73,0.30);
+  color: #0a0d08;
+  box-shadow: 0 0 0 4px var(--accent-glow);
 }
-.step-item.completed .step-num { background: var(--green); border-color: var(--green); color: #0a0d08; }
+.step-item.active .step-label { color: var(--text); font-weight: 600; }
+.step-item.completed .step-num { 
+  background: var(--surface); 
+  border-color: var(--accent); 
+  color: var(--accent); 
+}
 .step-item.completed .step-num::after { content: '✓'; }
-.step-item.active .step-label { color: #0a0d08; font-weight: 600; }
 
 .step-num {
-  width: 28px; height: 28px;
+  width: 32px; height: 32px;
   border-radius: 50%;
+  background: var(--surface);
   border: 1.5px solid var(--muted);
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 600; color: var(--muted);
+  font-size: 13px; font-weight: 600; color: var(--muted);
   flex-shrink: 0;
   transition: all var(--transition);
 }
-.step-item.active .step-num {
-  border-color: #0a0d08;
-  color: #0a0d08;
-  background: rgba(10,13,8,0.18);
-}
-
 .step-label {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
   transition: color var(--transition);
 }
-.step-item.active .step-label { color: var(--text); }
 
 .sidebar-footer {
   padding: 16px 24px;
@@ -173,6 +183,27 @@ body::after {
   display: flex; align-items: center; gap: 8px;
   font-size: 12px; color: var(--muted);
 }
+.btn-logout {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-logout:hover {
+  border-color: rgba(239,111,111,0.4);
+  color: #ef6f6f;
+  background: rgba(239,111,111,0.08);
+}
+.btn-logout:disabled { opacity: 0.5; cursor: not-allowed; }
 .status-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: var(--muted);
@@ -642,7 +673,61 @@ input[type=range]::-webkit-slider-thumb {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ============================================================
+   RESPONSIVE (Mobile & Tablet)
+   ============================================================ */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar {
+    height: auto;
+    position: relative;
+    padding: 16px 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    padding: 0 16px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .brand-tag { margin-top: 0; }
+  .steps {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .steps::before { display: none; }
+  .step-item {
+    padding: 10px 14px;
+    flex-shrink: 0;
+  }
+  .step-label { display: none; }
+  .step-item.active .step-label { display: block; }
+  .sidebar-footer { display: none; }
+  .main {
+    padding: 24px 16px;
+  }
+  .platform-grid { grid-template-columns: 1fr; gap: 12px; }
+  .form-row-2 { grid-template-columns: 1fr; gap: 12px; }
+  .delay-grid { grid-template-columns: 1fr; gap: 12px; }
+  .summary-grid { grid-template-columns: 1fr; gap: 12px; }
+  .stats-row { grid-template-columns: 1fr; gap: 12px; }
+}
+
+@media (max-width: 480px) {
+  .page-title { font-size: 22px; }
+  .template-grid { grid-template-columns: 1fr; }
+}
 </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>.lucide { width: 1.2em; height: 1.2em; vertical-align: middle; stroke-width: 2.2px; }</style>
 </head>
 <body>
 
@@ -653,7 +738,7 @@ input[type=range]::-webkit-slider-thumb {
        ====================================================== -->
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-name">✉ MailFlow</div>
+      <div class="brand-name"><i data-lucide="mail"></i> MailFlow</div>
       <div class="brand-tag">Email Marketing Suite</div>
     </div>
 
@@ -689,6 +774,14 @@ input[type=range]::-webkit-slider-thumb {
         <div class="status-dot" id="globalStatusDot"></div>
         <span id="globalStatusText">Idle</span>
       </div>
+      <button class="btn-logout" id="logoutBtn" onclick="logout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Log Out
+      </button>
     </div>
   </aside>
 
@@ -707,17 +800,17 @@ input[type=range]::-webkit-slider-thumb {
       <p class="section-label">Select Platform</p>
       <div class="platform-grid">
         <div class="platform-card" data-platform="gmail" onclick="selectPlatform('gmail')">
-          <div class="platform-icon">📧</div>
+          <div class="platform-icon"><i data-lucide="mail"></i></div>
           <div class="platform-name">Gmail</div>
           <div class="platform-desc">Google Workspace / Gmail</div>
         </div>
         <div class="platform-card selected" data-platform="hostinger" onclick="selectPlatform('hostinger')">
-          <div class="platform-icon">🌐</div>
+          <div class="platform-icon"><i data-lucide="globe"></i></div>
           <div class="platform-name">Hostinger</div>
           <div class="platform-desc">Custom domain email</div>
         </div>
         <div class="platform-card" data-platform="outlook" onclick="selectPlatform('outlook')">
-          <div class="platform-icon">💼</div>
+          <div class="platform-icon"><i data-lucide="briefcase"></i></div>
           <div class="platform-name">Outlook</div>
           <div class="platform-desc">Microsoft / Office 365</div>
         </div>
@@ -736,7 +829,12 @@ input[type=range]::-webkit-slider-thumb {
         </div>
         <div class="form-row">
           <label>Password / App Password</label>
-          <input class="form-control" id="senderPass" type="password" placeholder="••••••••••••" />
+          <div style="position: relative;">
+            <input class="form-control" id="senderPass" type="password" placeholder="••••••••••••" style="padding-right: 40px;" />
+            <button type="button" class="btn-ghost" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; display: flex; align-items: center;" onclick="togglePassword('senderPass', this)">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
         </div>
 
         <div id="connectionInfo" class="connection-info">
@@ -745,20 +843,20 @@ input[type=range]::-webkit-slider-thumb {
 
         <div class="btn-row">
           <button class="btn btn-ghost" id="testConnBtn" onclick="testConnection()">
-            🔌 Test Connection
+            <i data-lucide="plug"></i> Test Connection
           </button>
           <button class="btn btn-primary" onclick="goStep(2)">
             Continue →
           </button>
         </div>
 
-        <div class="alert alert-success" id="connAlertOk">✓ Connection successful! SMTP and IMAP verified.</div>
+        <div class="alert alert-success" id="connAlertOk"><i data-lucide="check"></i> Connection successful! SMTP and IMAP verified.</div>
         <div class="alert alert-error"   id="connAlertErr"></div>
         <div class="alert alert-warning" id="connAlertWarn"></div>
       </div>
 
       <div class="card" style="background:rgba(245,158,11,0.04); border-color:rgba(245,158,11,0.15);">
-        <div class="card-title" style="color:var(--yellow);">⚠ Gmail Users — App Password Required</div>
+        <div class="card-title" style="color:var(--yellow);"><i data-lucide="alert-triangle"></i> Gmail Users — App Password Required</div>
         <div style="font-size:13px; color:var(--muted); line-height:1.7;">
           Gmail requires a 16-character <b style="color:var(--text)">App Password</b> (not your regular password).
           Enable 2FA → Google Account → Security → App Passwords → Select Mail → Generate.
@@ -776,7 +874,7 @@ input[type=range]::-webkit-slider-thumb {
       <div class="card">
         <div class="upload-zone" id="uploadZone">
           <input type="file" accept=".xlsx,.xls" id="excelInput" onchange="handleFileUpload(this)" />
-          <div class="upload-icon">📊</div>
+          <div class="upload-icon"><i data-lucide="bar-chart-2"></i></div>
           <div class="upload-title">Drop your Excel file here</div>
           <div class="upload-sub">or click to browse — .xlsx / .xls supported</div>
         </div>
@@ -857,7 +955,7 @@ input[type=range]::-webkit-slider-thumb {
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
         <button class="btn btn-primary" id="launchBtn" onclick="launchCampaign()">
-          🚀 Start Campaign
+          <i data-lucide="rocket"></i> Start Campaign
         </button>
       </div>
     </div>
@@ -896,7 +994,7 @@ input[type=range]::-webkit-slider-thumb {
 
         <div class="btn-row" style="margin-top:16px;">
           <button class="btn btn-danger" id="stopBtn" onclick="stopCampaign()" style="display:none;">
-            ■ Stop Campaign
+            <i data-lucide="square"></i> Stop Campaign
           </button>
           <button class="btn btn-success" id="viewLogsBtn" onclick="goStep(6)" style="display:none;">
             View Sent Logs →
@@ -918,7 +1016,7 @@ input[type=range]::-webkit-slider-thumb {
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <div class="card-title" style="margin:0;">Recent Activity</div>
-          <button class="btn btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="loadLogs()">↻ Refresh</button>
+          <button class="btn btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="loadLogs()"><i data-lucide="refresh-cw"></i> Refresh</button>
         </div>
         <div class="table-wrap" id="logsTable">
           <div class="empty-state">Loading logs…</div>
@@ -933,6 +1031,19 @@ input[type=range]::-webkit-slider-thumb {
      JAVASCRIPT
      ============================================================ -->
 <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
 /* ──────────────────────────────────────────────────────────
    BACKEND URL CONFIG
    - Leave '' when the Python backend serves this page (local / Render).
@@ -994,7 +1105,7 @@ function showBackendBanner() {
   b.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:99;background:rgba(245,197,66,0.12);' +
     'border:1px solid rgba(245,197,66,0.35);color:#f5c542;padding:12px 16px;border-radius:10px;' +
     'font-size:12.5px;max-width:320px;line-height:1.5;backdrop-filter:blur(8px);';
-  b.innerHTML = '⚠ <b>Backend not connected.</b><br>The UI is live, but sending needs the Python backend. ' +
+  b.innerHTML = '<i data-lucide="alert-triangle"></i> <b>Backend not connected.</b><br>The UI is live, but sending needs the Python backend. ' +
     'Set its URL in <code>static/config.js</code>. See <code>DEPLOY.md</code>.';
   document.body.appendChild(b);
 }
@@ -1040,7 +1151,7 @@ async function testConnection() {
   state.senderName = document.getElementById('senderName').value.trim() || state.email;
 
   if (!state.email || !state.password) {
-    showAlert('connAlertErr', '✗ Please enter email and password first.');
+    showAlert('connAlertErr', '<i data-lucide="x"></i> Please enter email and password first.');
     return;
   }
 
@@ -1060,13 +1171,13 @@ async function testConnection() {
       const details = [];
       if (res.smtp !== 'ok') details.push(`SMTP: ${res.smtp}`);
       if (res.imap !== 'ok') details.push(`IMAP: ${res.imap}`);
-      showAlert('connAlertErr', `✗ Connection failed — ${details.join(' | ')}`);
+      showAlert('connAlertErr', `<i data-lucide="x"></i> Connection failed — ${details.join(' | ')}`);
     }
   } catch (e) {
-    showAlert('connAlertErr', `✗ Request error: ${e.message}`);
+    showAlert('connAlertErr', `<i data-lucide="x"></i> Request error: ${e.message}`);
   }
 
-  btn.innerHTML = '🔌 Test Connection';
+  btn.innerHTML = '<i data-lucide="plug"></i> Test Connection';
   btn.disabled = false;
 }
 
@@ -1088,7 +1199,7 @@ async function handleFileUpload(input) {
     const res = await fetch(API + '/api/upload-excel', { method: 'POST', body: formData });
     if (!res.ok) {
       const err = await res.json();
-      showAlert('uploadErr', `✗ ${err.detail}`);
+      showAlert('uploadErr', `<i data-lucide="x"></i> ${err.detail}`);
       return;
     }
     const data = await res.json();
@@ -1100,7 +1211,7 @@ async function handleFileUpload(input) {
     renderChips(data.headers);
     document.getElementById('previewSection').style.display = 'block';
   } catch (e) {
-    showAlert('uploadErr', `✗ Upload failed: ${e.message}`);
+    showAlert('uploadErr', `<i data-lucide="x"></i> Upload failed: ${e.message}`);
   }
 }
 
@@ -1147,7 +1258,7 @@ async function loadTemplates() {
 
     grid.innerHTML = templates.map(t => `
       <div class="template-card" data-name="${t.name}" onclick="selectTemplate('${t.name}')">
-        <div class="template-check">✓</div>
+        <div class="template-check"><i data-lucide="check"></i></div>
         <div class="template-name">${capitalize(t.name)}</div>
         <div class="template-subject">${t.subject}</div>
         <div class="template-fields">
@@ -1243,7 +1354,7 @@ async function launchCampaign() {
       const err = await res.json();
       alert(`Failed to start: ${err.detail}`);
       btn.disabled = false;
-      btn.innerHTML = '🚀 Start Campaign';
+      btn.innerHTML = '<i data-lucide="rocket"></i> Start Campaign';
       return;
     }
 
@@ -1253,7 +1364,7 @@ async function launchCampaign() {
   } catch (e) {
     alert(`Error: ${e.message}`);
     btn.disabled = false;
-    btn.innerHTML = '🚀 Start Campaign';
+    btn.innerHTML = '<i data-lucide="rocket"></i> Start Campaign';
   }
 }
 
@@ -1290,27 +1401,27 @@ function handleCampaignEvent(ev) {
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('progressLabel').textContent = `${ev.index} / ${ev.total}  (${pct}%)`;
     const cls = ev.status === 'sent' ? 'sent' : 'failed';
-    const icon = ev.status === 'sent' ? '✓' : '✗';
+    const icon = ev.status === 'sent' ? '<i data-lucide="check"></i>' : '<i data-lucide="x"></i>';
     addLog(`${icon} ${ev.email}`, cls);
   }
 
   if (ev.type === 'warning') {
-    addLog(`⚠ ${ev.message}`, 'warn');
+    addLog(`<i data-lucide="alert-triangle"></i> ${ev.message}`, 'warn');
   }
 
   if (ev.type === 'done') {
     document.getElementById('stopBtn').style.display = 'none';
     document.getElementById('viewLogsBtn').style.display = 'inline-flex';
-    showAlert('doneAlert', `✓ ${ev.message}`);
+    showAlert('doneAlert', `<i data-lucide="check"></i> ${ev.message}`);
     addLog(`— ${ev.message} —`, 'info');
     setGlobalStatus(false);
     document.getElementById('launchBtn').disabled = false;
-    document.getElementById('launchBtn').innerHTML = '🚀 Start Campaign';
+    document.getElementById('launchBtn').innerHTML = '<i data-lucide="rocket"></i> Start Campaign';
     _sse.close();
   }
 
   if (ev.type === 'error') {
-    showAlert('errorAlert', `✗ ${ev.message}`);
+    showAlert('errorAlert', `<i data-lucide="x"></i> ${ev.message}`);
     addLog(`ERROR: ${ev.message}`, 'failed');
     document.getElementById('stopBtn').style.display = 'none';
     setGlobalStatus(false);
@@ -1382,11 +1493,32 @@ async function loadLogs() {
     </table>`;
 }
 
+/* ── Logout ────────────────────────────────────────────── */
+async function logout() {
+  // Block logout mid-campaign to avoid orphaning a running send.
+  const st = await fetch(API + '/api/status').then(r => r.json()).catch(() => ({ running: false }));
+  if (st.running && !confirm('A campaign is currently running. Log out anyway?')) return;
+
+  const btn = document.getElementById('logoutBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="border-top-color:#ef6f6f;"></span> Logging out…';
+
+  // Close any live event stream and wipe in-memory credentials.
+  try { if (_sse) _sse.close(); } catch (e) {}
+  state.email = ''; state.password = ''; state.senderName = '';
+
+  try { await fetch(API + '/api/logout', { method: 'POST' }); } catch (e) {}
+
+  // Redirect to home — the cleared cookie makes "/" serve the landing page.
+  window.location.href = API + '/';
+}
+
 /* ── Helpers ───────────────────────────────────────────── */
 function showAlert(id, msg) {
   const el = document.getElementById(id);
   if (msg) el.textContent = msg;
   el.classList.add('show');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 function hideAlerts(prefix) {
   document.querySelectorAll(`[id^="${prefix}Alert"]`).forEach(el => el.classList.remove('show'));
@@ -1399,6 +1531,60 @@ function setGlobalStatus(running) {
 
 /* ── Boot ──────────────────────────────────────────────── */
 init();
+</script>
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+lucide.createIcons();
+
+  // --- LocalStorage Credentials ---
+  function saveCredentials() {
+    localStorage.setItem('mf_email', document.getElementById('senderEmail').value);
+    localStorage.setItem('mf_name', document.getElementById('senderName').value);
+    localStorage.setItem('mf_pass', document.getElementById('senderPass').value);
+  }
+  
+  function loadCredentials() {
+    if (localStorage.getItem('mf_email')) document.getElementById('senderEmail').value = localStorage.getItem('mf_email');
+    if (localStorage.getItem('mf_name')) document.getElementById('senderName').value = localStorage.getItem('mf_name');
+    if (localStorage.getItem('mf_pass')) document.getElementById('senderPass').value = localStorage.getItem('mf_pass');
+    
+    if (localStorage.getItem('mf_platform')) {
+      const p = localStorage.getItem('mf_platform');
+      const oldSelect = window.selectPlatform;
+      if (oldSelect) {
+         oldSelect(p);
+      }
+    }
+  }
+
+  // Hook inputs
+  document.getElementById('senderEmail').addEventListener('input', saveCredentials);
+  document.getElementById('senderName').addEventListener('input', saveCredentials);
+  document.getElementById('senderPass').addEventListener('input', saveCredentials);
+
+  // Hook selectPlatform
+  const oldSelectPlatform = window.selectPlatform;
+  window.selectPlatform = function(p) {
+    if (oldSelectPlatform) oldSelectPlatform(p);
+    localStorage.setItem('mf_platform', p);
+  };
+  
+  // Load on init
+  window.addEventListener('DOMContentLoaded', () => {
+    loadCredentials();
+  });
+
 </script>
 </body>
 </html>

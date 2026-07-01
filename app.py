@@ -30,7 +30,7 @@ from typing import Optional
 
 import openpyxl
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -291,11 +291,36 @@ def campaign_worker(cfg: dict, recipients: list, campaign: str,
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+AUTH_TOKEN = "mailflow_secure_session"
+
+@app.post("/api/login")
+async def login(payload: dict, response: Response):
+    email = payload.get("email", "").strip()
+    password = payload.get("password", "").strip()
+    
+    if email == "support@ankitkumaracademy.com" and password == "Kumar@20.26":
+        response.set_cookie(key="auth_token", value=AUTH_TOKEN, httponly=True)
+        return {"success": True}
+    return {"success": False, "message": "Invalid credentials."}
+
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    # Clears the session cookie so the next load of "/" serves the landing page.
+    response.delete_cookie(key="auth_token")
+    return {"success": True}
+
+
 @app.get("/", response_class=HTMLResponse)
-async def dashboard():
-    html_path = os.path.join(STATIC_DIR, "index.html")
+async def dashboard(request: Request):
+    token = request.cookies.get("auth_token")
+    if token == AUTH_TOKEN:
+        html_path = os.path.join(STATIC_DIR, "index.html")
+    else:
+        html_path = os.path.join(STATIC_DIR, "landing.html")
+
     if not os.path.exists(html_path):
-        return HTMLResponse("<h1>Dashboard not found. Place index.html in static/</h1>", status_code=500)
+        return HTMLResponse("<h1>Page not found.</h1>", status_code=500)
     with open(html_path, encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
