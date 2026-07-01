@@ -1799,7 +1799,8 @@ async function logout() {
 /* ── Helpers ───────────────────────────────────────────── */
 function showAlert(id, msg) {
   const el = document.getElementById(id);
-  if (msg) el.textContent = msg;
+  // innerHTML so embedded <i data-lucide> icons render (not shown as raw text).
+  if (msg) el.innerHTML = msg;
   el.classList.add('show');
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }

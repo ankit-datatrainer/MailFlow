@@ -167,14 +167,47 @@ def log_result(campaign: str, email: str, status: str, detail: str = ""):
         w.writerow([datetime.now().isoformat(timespec="seconds"), campaign, email, status, detail])
 
 
-def build_smtp(cfg: dict):
-    host, port = cfg["smtp_host"], int(cfg["smtp_port"])
-    context = ssl.create_default_context()
-    if cfg.get("smtp_security") == "ssl" or port == 465:
-        return smtplib.SMTP_SSL(host, port, context=context)
-    server = smtplib.SMTP(host, port, timeout=15)
-    server.starttls(context=context)
-    return server
+def _smtp_candidates(host: str, port, security):
+    """Primary (host, port, security) plus the sensible alternate port."""
+    p = int(port)
+    prim = (host, p, security or ("ssl" if p == 465 else "starttls"))
+    cands = [prim]
+    alt = (host, 587, "starttls") if p == 465 else (host, 465, "ssl")
+    if alt != prim:
+        cands.append(alt)
+    return cands
+
+
+def open_smtp_login(host, port, security, email, password, timeout=30, attempts=2):
+    """
+    Connect + log in to SMTP resiliently.
+    - Generous timeout (some hosts' TLS handshake is slow, ~8s+).
+    - Retries the primary port, then falls back to the alternate (465<->587).
+    Returns (server, (host, port, security_used)). Raises the last error if all fail.
+    """
+    last = None
+    for h, p, sec in _smtp_candidates(host, port, security):
+        for _ in range(attempts):
+            srv = None
+            try:
+                ctx = ssl.create_default_context()
+                if sec == "ssl":
+                    srv = smtplib.SMTP_SSL(h, p, context=ctx, timeout=timeout)
+                else:
+                    srv = smtplib.SMTP(h, p, timeout=timeout)
+                    srv.ehlo()
+                    srv.starttls(context=ctx)
+                    srv.ehlo()
+                srv.login(email, password)
+                return srv, (h, p, sec)
+            except Exception as e:  # noqa: BLE001
+                last = e
+                try:
+                    if srv is not None:
+                        srv.close()
+                except Exception:  # noqa: BLE001
+                    pass
+    raise last if last else RuntimeError("SMTP connection failed.")
 
 
 def build_message(sender_email: str, sender_name: str, to_email: str,
@@ -233,8 +266,10 @@ def campaign_worker(cfg: dict, recipients: list, campaign: str,
     sent_count = failed_count = 0
 
     try:
-        server = build_smtp(cfg)
-        server.login(cfg["sender_email"], cfg["password"])
+        server, _used = open_smtp_login(
+            cfg["smtp_host"], cfg["smtp_port"], cfg.get("smtp_security"),
+            cfg["sender_email"], cfg["password"],
+        )
     except Exception as e:
         emit("error", message=f"SMTP login failed: {e}")
         return
@@ -449,23 +484,24 @@ async def test_connection(payload: dict):
 
     results = {}
 
-    # Test SMTP
+    # Test SMTP (resilient: generous timeout, retry, port fallback)
     try:
-        ctx = ssl.create_default_context()
-        if preset["smtp_security"] == "ssl":
-            srv = smtplib.SMTP_SSL(preset["smtp_host"], preset["smtp_port"], context=ctx, timeout=10)
-        else:
-            srv = smtplib.SMTP(preset["smtp_host"], preset["smtp_port"], timeout=10)
-            srv.starttls(context=ctx)
-        srv.login(email, password)
-        srv.quit()
+        srv, used = open_smtp_login(
+            preset["smtp_host"], preset["smtp_port"], preset["smtp_security"],
+            email, password,
+        )
+        try:
+            srv.quit()
+        except Exception:  # noqa: BLE001
+            pass
         results["smtp"] = "ok"
+        results["smtp_via"] = f"{used[0]}:{used[1]} ({used[2]})"
     except Exception as e:
         results["smtp"] = f"failed: {e}"
 
     # Test IMAP
     try:
-        imap = imaplib.IMAP4_SSL(preset["imap_host"], preset["imap_port"])
+        imap = imaplib.IMAP4_SSL(preset["imap_host"], int(preset["imap_port"]))
         imap.login(email, password)
         imap.logout()
         results["imap"] = "ok"
