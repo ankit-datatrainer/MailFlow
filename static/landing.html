@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailFlow — The Premium Email Marketing Suite</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0d08;
+      --surface: #11150d;
+      --surface2: #161b10;
+      --border: rgba(137,197,73,0.15);
+      --text: #eef3e6;
+      --muted: #8a9579;
+      --accent: #89C549;
+      --accent-hover: #a3d96b;
+      --accent-glow: rgba(137,197,73,0.16);
+      --radius: 14px;
+      --transition: 0.22s cubic-bezier(.4,0,.2,1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      background: radial-gradient(circle at 50% 0%, rgba(137,197,73,0.15) 0%, transparent 50%);
+    }
+    
+    /* Header */
+    header {
+      padding: 24px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,13,8,0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand-name {
+      font-size: 24px; font-weight: 800;
+      background: linear-gradient(135deg, #c2e89a, #6fa838);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 10px 24px; border-radius: 8px; font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all var(--transition); border: none; outline: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #6fa838);
+      color: #0a0d08; box-shadow: 0 4px 16px rgba(137,197,73,0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(137,197,73,0.45);
+    }
+    
+    /* Hero */
+    .hero {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 80px 24px;
+    }
+    .hero h1 {
+      font-size: 56px; font-weight: 800; letter-spacing: -1.5px;
+      margin-bottom: 24px; line-height: 1.1;
+      background: linear-gradient(180deg, #fff, #a3d96b);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 18px; color: var(--muted); max-width: 600px;
+      margin-bottom: 40px; line-height: 1.6;
+    }
+    
+    /* Features */
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; max-width: 1000px; margin: 0 auto 80px; padding: 0 24px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 32px; border-radius: var(--radius); text-align: left;
+    }
+    .feature-icon { font-size: 32px; margin-bottom: 16px; }
+    .feature-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .feature-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    
+    /* Footer */
+    footer {
+      padding: 40px 24px; text-align: center; border-top: 1px solid var(--border);
+      background: var(--surface); color: var(--muted);
+    }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 100;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    
+    .modal {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 40px; border-radius: var(--radius); width: 100%; max-width: 400px;
+      transform: translateY(20px); transition: transform 0.3s;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+    }
+    .modal-overlay.active .modal { transform: translateY(0); }
+    
+    .modal h2 { font-size: 24px; margin-bottom: 24px; text-align: center; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block; font-size: 12px; font-weight: 500; color: var(--muted);
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .form-control {
+      width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+      color: var(--text); padding: 12px 16px; border-radius: 8px; font-size: 14px;
+      font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+    }
+    .form-control:focus { outline: none; border-color: var(--accent); }
+    .error-msg {
+      color: #ef6f6f; font-size: 13px; text-align: center; margin-bottom: 16px;
+      display: none;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 40px; }
+      header { padding: 20px; }
+    }
+  </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>.lucide { width: 1.2em; height: 1.2em; vertical-align: middle; stroke-width: 2.2px; }</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-name"><i data-lucide="mail"></i> MailFlow</div>
+    <button class="btn btn-primary" onclick="openModal()">Login</button>
+  </header>
+
+  <main class="hero">
+    <h1>Automate Your Outreach.<br>Magnify Your Impact.</h1>
+    <p>MailFlow is the premium email marketing suite designed to send personalized, bulk campaigns seamlessly. Connect your accounts, upload your leads, and watch your conversions soar.</p>
+    <button class="btn btn-primary" style="font-size: 16px; padding: 14px 32px;" onclick="openModal()">Access Dashboard</button>
+  </main>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon"><i data-lucide="zap"></i></div>
+      <div class="feature-title">Lightning Fast Setup</div>
+      <div class="feature-desc">Connect Gmail, Outlook, or any custom SMTP server instantly. No complicated integrations required.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i data-lucide="target"></i></div>
+      <div class="feature-title">Smart Personalization</div>
+      <div class="feature-desc">Use dynamic variables from your Excel sheets to send highly personalized emails to every recipient.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i data-lucide="bar-chart-2"></i></div>
+      <div class="feature-title">Real-time Tracking</div>
+      <div class="feature-desc">Monitor your campaigns as they run. Never accidentally send duplicate emails to the same lead again.</div>
+    </div>
+  </div>
+
+  <footer>
+    <div style="margin-bottom: 24px;">
+      <button class="btn btn-primary" onclick="openModal()">Admin Login</button>
+    </div>
+    <p>&copy; 2026 MailFlow. All rights reserved.</p>
+  </footer>
+
+  <div class="modal-overlay" id="loginModal" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2>Sign In</h2>
+      <div class="error-msg" id="errorMsg">Invalid credentials.</div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="email" class="form-control" required placeholder="support@ankitkumaracademy.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div style="position: relative;">
+            <input type="password" id="password" class="form-control" required placeholder="••••••••" style="padding-right: 40px;">
+            <button type="button" class="btn-ghost" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; display: flex; align-items: center;" onclick="togglePassword('password', this)">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Login to Dashboard</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function openModal() {
+      document.getElementById('loginModal').classList.add('active');
+      document.getElementById('errorMsg').style.display = 'none';
+    }
+    function closeModal(e) {
+      if(e.target.id === 'loginModal') {
+        document.getElementById('loginModal').classList.remove('active');
+      }
+    }
+    
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('errorMsg');
+      
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Verifying...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+          window.location.reload(); // Reloads page, server will now serve index.html
+        } else {
+          errorMsg.textContent = data.message || 'Invalid credentials.';
+          errorMsg.style.display = 'block';
+          btn.textContent = 'Login to Dashboard';
+          btn.disabled = false;
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Server error. Please try again.';
+        errorMsg.style.display = 'block';
+        btn.textContent = 'Login to Dashboard';
+        btn.disabled = false;
+      }
+    }
+  </script>
+  <script>
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        input.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+lucide.createIcons();</script>
+</body>
+</html>
