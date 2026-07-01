@@ -538,6 +538,14 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
 }
 .template-preview-btn:hover { background: rgba(137,197,73,0.2); }
 .template-preview-btn i { width: 13px; height: 13px; }
+.template-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.template-actions .template-preview-btn { margin-top: 0; }
+.template-edit-btn {
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+  border-color: var(--border);
+}
+.template-edit-btn:hover { background: rgba(255,255,255,0.1); }
 
 /* "Add new template" card */
 .template-card.add-card {
@@ -1130,7 +1138,7 @@ input[type=range]::-webkit-slider-thumb {
 <div class="modal-overlay" id="createModal">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <div class="modal-title"><i data-lucide="plus"></i> New Template</div>
+      <div class="modal-title"><i data-lucide="plus"></i> <span id="createModalTitle">New Template</span></div>
       <button class="modal-close" onclick="closeCreateModal()"><i data-lucide="x"></i></button>
     </div>
     <div class="modal-body create-grid">
@@ -1409,9 +1417,14 @@ async function loadTemplates() {
         <div class="template-fields">
           ${t.fields.map(f => `<span class="template-field">{${f}}</span>`).join('')}
         </div>
-        <button class="template-preview-btn" onclick="event.stopPropagation(); openPreview('${t.name}')">
-          <i data-lucide="eye"></i> Preview
-        </button>
+        <div class="template-actions">
+          <button class="template-preview-btn" onclick="event.stopPropagation(); openPreview('${t.name}')">
+            <i data-lucide="eye"></i> Preview
+          </button>
+          <button class="template-preview-btn template-edit-btn" onclick="event.stopPropagation(); editTemplate('${t.name}')">
+            <i data-lucide="pencil"></i> Edit
+          </button>
+        </div>
       </div>`;
     }).join('');
 
@@ -1455,27 +1468,69 @@ function closePreview() {
   document.getElementById('previewFrame').src = 'about:blank';
 }
 
-/* ── Create New Template ───────────────────────────────── */
+/* ── Create / Edit Template ────────────────────────────── */
 const DRAFT_KEY = 'mf_template_draft';
+let editingTemplate = null;   // slug when editing an existing template, else null
 
 function openCreateModal() {
+  editingTemplate = null;
+  document.getElementById('createModalTitle').textContent = 'New Template';
+  document.getElementById('saveTplBtn').textContent = 'Save Template';
+  const nameEl = document.getElementById('tplName');
+  nameEl.readOnly = false;
+  nameEl.style.opacity = '1';
+  // Fresh form for a new template (draft may refill it below).
+  document.getElementById('tplSubject').value = '';
+  document.getElementById('tplBody').value = '';
+  nameEl.value = '';
+  document.getElementById('createErr').classList.remove('show');
   document.getElementById('createModal').classList.add('show');
   restoreDraft();
   refreshDraftFields();
+  previewDraft();
   if (window.lucide) lucide.createIcons();
 }
-function closeCreateModal() {
-  document.getElementById('createModal').classList.remove('show');
+
+// Open the same modal pre-filled with an existing template's content.
+async function editTemplate(name) {
+  const err = document.getElementById('createErr');
+  err.classList.remove('show');
+  try {
+    const t = await fetch(API + '/api/templates/' + encodeURIComponent(name)).then(r => r.json());
+    editingTemplate = name;
+    document.getElementById('createModalTitle').textContent = 'Edit Template — ' + capitalize(name);
+    document.getElementById('saveTplBtn').textContent = 'Save Changes';
+    const nameEl = document.getElementById('tplName');
+    nameEl.value = name;
+    nameEl.readOnly = true;              // name locks the folder; body/subject are editable
+    nameEl.style.opacity = '0.6';
+    document.getElementById('tplSubject').value = t.subject || '';
+    document.getElementById('tplBody').value = t.body || '';
+    document.getElementById('createModal').classList.add('show');
+    refreshDraftFields();
+    previewDraft();
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    alert('Could not load template for editing: ' + e.message);
+  }
 }
 
-// Autosave the in-progress template so a refresh / coming back keeps the work.
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('show');
+  editingTemplate = null;
+}
+
+// Autosave the in-progress NEW template so a refresh / coming back keeps the work.
+// (Skipped while editing an existing template — no draft to persist there.)
 function saveDraft() {
-  const draft = {
-    name:    document.getElementById('tplName').value,
-    subject: document.getElementById('tplSubject').value,
-    body:    document.getElementById('tplBody').value,
-  };
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  if (!editingTemplate) {
+    const draft = {
+      name:    document.getElementById('tplName').value,
+      subject: document.getElementById('tplSubject').value,
+      body:    document.getElementById('tplBody').value,
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }
   refreshDraftFields();
 }
 function restoreDraft() {
@@ -1518,7 +1573,9 @@ async function saveTemplate() {
   if (!name) { err.textContent = 'Please give the template a name.'; err.classList.add('show'); return; }
   if (!body) { err.textContent = 'The email body (HTML) cannot be empty.'; err.classList.add('show'); return; }
 
+  const isEdit = !!editingTemplate;
   const btn = document.getElementById('saveTplBtn');
+  const label = isEdit ? 'Save Changes' : 'Save Template';
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Saving…';
 
@@ -1526,28 +1583,29 @@ async function saveTemplate() {
     const res = await fetch(API + '/api/templates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, subject, body }),
+      // overwrite:true when editing so the backend updates the existing folder.
+      body: JSON.stringify({ name, subject, body, overwrite: isEdit }),
     });
     if (!res.ok) {
       const e = await res.json();
       err.textContent = e.detail || 'Could not save template.';
       err.classList.add('show');
-      btn.disabled = false; btn.innerHTML = 'Save Template';
+      btn.disabled = false; btn.innerHTML = label;
       return;
     }
     const saved = await res.json();
-    localStorage.removeItem(DRAFT_KEY);            // clear the draft once saved
+    if (!isEdit) localStorage.removeItem(DRAFT_KEY);   // clear draft only for new
     document.getElementById('tplName').value = '';
     document.getElementById('tplSubject').value = '';
     document.getElementById('tplBody').value = '';
     closeCreateModal();
     await loadTemplates();
-    selectTemplate(saved.name);                    // auto-select the new one
+    selectTemplate(saved.name);                        // select the saved/edited one
     btn.disabled = false; btn.innerHTML = 'Save Template';
   } catch (e) {
     err.textContent = 'Request failed: ' + e.message;
     err.classList.add('show');
-    btn.disabled = false; btn.innerHTML = 'Save Template';
+    btn.disabled = false; btn.innerHTML = label;
   }
 }
 
