@@ -1,15 +1,25 @@
 # MailFlow — Hosting Guide
 
+## ⚠️ Read this first — why your Vercel site can't send email
+
 The app has **two parts**:
 
-| Part | What it is | Where it can be hosted free |
-|------|-----------|-----------------------------|
-| **Frontend** (`static/`) | The dashboard UI — pure HTML/CSS/JS | ✅ **Vercel** (static, instant) |
-| **Backend** (`app.py`) | The sending engine — runs campaigns for minutes, streams live progress, sends SMTP | ✅ **Render** / Railway free tier |
+| Part | What it is | Can it live on Vercel? |
+|------|-----------|------------------------|
+| **Frontend** (`static/`) | The dashboard UI — HTML/CSS/JS | ✅ Yes (it's just static files) |
+| **Backend** (`app.py`) | The engine that actually sends email over SMTP | ❌ **No** |
 
-> ⚠️ **Why not the backend on Vercel?** Vercel is *serverless* — functions stop after 10–60 seconds and can't run background threads or live SSE streams. A campaign with delays runs for minutes and must hold state, so it needs an **always-on** host. Render's free tier does this. Vercel is perfect for the static frontend.
+**A Vercel deployment shows the dashboard but cannot send a single email**, because:
+1. Vercel is *serverless* — functions stop after 10–60s and can't hold a live SMTP session or stream progress for a minutes-long campaign.
+2. Serverless/PaaS free tiers commonly **block outbound SMTP ports** (25/465/587) to stop spam.
 
-You can also just run everything **locally** (`python app.py`) — no hosting needed.
+So the backend must run somewhere **always-on that allows outbound SMTP**. Your options, honestly ranked:
+
+- **Local machine** (best/simplest) — `python app.py`, use `http://localhost:8000`. Sends immediately, zero cost. ← use this to actually send.
+- **A small VPS** (Hostinger VPS, DigitalOcean, Fly.io) — for a public URL that can send. You control the ports.
+- **Render/Railway free** — runs the app, **but free tiers block SMTP**, so sending will fail. Only useful as a public demo of the UI.
+
+👉 **To send email right now: run it locally.** The Vercel URL is only a UI showcase.
 
 ---
 

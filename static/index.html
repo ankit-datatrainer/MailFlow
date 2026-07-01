@@ -1423,10 +1423,36 @@ function updateConnectionInfo() {
     `SMTP: ${pr.smtp_host}:${pr.smtp_port} (${sec})  |  IMAP: ${pr.imap_host}:${pr.imap_port}  |  Sent: ${pr.sent_folder}`;
 }
 
+// Verify the Python backend is actually reachable before any send/connect.
+// On a frontend-only host (e.g. Vercel), /api/* returns HTML, so JSON parse fails.
+async function ensureBackend() {
+  try {
+    const r = await fetch(API + '/api/status', { cache: 'no-store' });
+    const ct = r.headers.get('content-type') || '';
+    if (!r.ok || !ct.includes('application/json')) throw new Error('no api');
+    await r.json();
+    backendOnline = true;
+    return true;
+  } catch (e) {
+    backendOnline = false;
+    alert(
+      'No email backend is connected to this site.\n\n' +
+      'This page (' + (location.host || 'this host') + ') is only the dashboard UI. ' +
+      'Sending email needs the Python backend (app.py) running on an always-on ' +
+      'server — Vercel cannot run it.\n\n' +
+      'To send now: run "python app.py" and open http://localhost:8000\n' +
+      'To host publicly: deploy app.py to a VPS and set its URL in static/config.js.\n\n' +
+      'See DEPLOY.md for details.'
+    );
+    return false;
+  }
+}
+
 /* ── Test Connection ───────────────────────────────────── */
 async function testConnection() {
   const btn = document.getElementById('testConnBtn');
   hideAlerts('conn');
+  if (!(await ensureBackend())) return;
   state.email    = document.getElementById('senderEmail').value.trim();
   state.password = document.getElementById('senderPass').value;
   state.senderName = document.getElementById('senderName').value.trim() || state.email;
@@ -1796,6 +1822,7 @@ async function launchCampaign() {
   if (!state.email || !state.password) { alert('Please enter your email and password in Step 1.'); return; }
   if (!state.excelData)                { alert('Please upload an Excel file in Step 2.'); return; }
   if (!state.campaign)                 { alert('Please select a template in Step 3.'); return; }
+  if (!(await ensureBackend()))        { return; }
 
   const btn = document.getElementById('launchBtn');
   btn.disabled = true;
