@@ -360,6 +360,76 @@ async def list_templates():
     return result
 
 
+def _safe_template_dir(name: str) -> str:
+    """Resolve a template folder path, blocking path traversal."""
+    safe = "".join(c for c in name if c.isalnum() or c in " -_").strip()
+    safe = safe.replace(" ", "-").lower()
+    if not safe:
+        raise HTTPException(400, "Invalid template name.")
+    d = os.path.abspath(os.path.join(TEMPLATES_DIR, safe))
+    if not d.startswith(os.path.abspath(TEMPLATES_DIR) + os.sep):
+        raise HTTPException(400, "Invalid template name.")
+    return d
+
+
+@app.get("/api/templates/{name}")
+async def get_template(name: str):
+    """Full template (subject + body + fields) for previewing/editing."""
+    d = _safe_template_dir(name)
+    body_path = os.path.join(d, "body.html")
+    subj_path = os.path.join(d, "subject.txt")
+    if not os.path.isdir(d) or not os.path.exists(body_path):
+        raise HTTPException(404, "Template not found.")
+    with open(body_path, encoding="utf-8") as f:
+        body = f.read()
+    subject = "Hello {name}"
+    if os.path.exists(subj_path):
+        with open(subj_path, encoding="utf-8") as f:
+            subject = f.read().strip()
+    fields = sorted(placeholders(subject) | placeholders(body))
+    return {"name": os.path.basename(d), "subject": subject, "body": body, "fields": fields}
+
+
+@app.get("/api/templates/{name}/preview", response_class=HTMLResponse)
+async def preview_template(name: str):
+    """Rendered HTML with sample data filled in, for an iframe preview."""
+    d = _safe_template_dir(name)
+    body_path = os.path.join(d, "body.html")
+    if not os.path.isdir(d) or not os.path.exists(body_path):
+        raise HTTPException(404, "Template not found.")
+    with open(body_path, encoding="utf-8") as f:
+        body = f.read()
+    sample = {"name": "Alex Johnson", "email": "alex@example.com"}
+    # Any other placeholders get a readable sample value like [company].
+    for field in placeholders(body):
+        sample.setdefault(field, f"[{field}]")
+    return HTMLResponse(render(body, sample))
+
+
+@app.post("/api/templates")
+async def create_template(payload: dict):
+    """Create/save a new template folder (persists to disk)."""
+    name = payload.get("name", "").strip()
+    subject = payload.get("subject", "").strip() or "Hello {name}"
+    body = payload.get("body", "").strip()
+    if not name:
+        raise HTTPException(400, "Template name is required.")
+    if not body:
+        raise HTTPException(400, "Template body (HTML) is required.")
+
+    d = _safe_template_dir(name)
+    if os.path.exists(d) and not payload.get("overwrite"):
+        raise HTTPException(409, "A template with that name already exists.")
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "subject.txt"), "w", encoding="utf-8") as f:
+        f.write(subject)
+    with open(os.path.join(d, "body.html"), "w", encoding="utf-8") as f:
+        f.write(body)
+
+    fields = sorted(placeholders(subject) | placeholders(body))
+    return {"name": os.path.basename(d), "subject": subject, "fields": fields}
+
+
 @app.post("/api/test-connection")
 async def test_connection(payload: dict):
     email = payload.get("email", "").strip()

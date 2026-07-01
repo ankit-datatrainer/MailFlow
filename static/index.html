@@ -522,6 +522,84 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); }
   border: 1px solid var(--border);
 }
 
+/* Preview button on each template card */
+.template-preview-btn {
+  margin-top: 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  color: var(--accent2);
+  background: var(--accent-glow);
+  border: 1px solid rgba(137,197,73,0.3);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.template-preview-btn:hover { background: rgba(137,197,73,0.2); }
+.template-preview-btn i { width: 13px; height: 13px; }
+
+/* "Add new template" card */
+.template-card.add-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; border-style: dashed; min-height: 150px;
+}
+.template-card.add-card:hover { border-color: var(--accent); }
+.add-plus {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent-glow); color: var(--accent2);
+  font-size: 26px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(6,8,4,0.72);
+  backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  padding: 32px;
+}
+.modal-overlay.show { display: flex; animation: fadeSlide 0.2s ease; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%; max-width: 620px;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.modal-lg { max-width: 1040px; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.modal-title i { width: 18px; height: 18px; color: var(--accent2); }
+.modal-close {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  padding: 4px; display: flex; border-radius: 6px; transition: all var(--transition);
+}
+.modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.modal-body { padding: 22px; overflow-y: auto; }
+.modal-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px; border-top: 1px solid var(--border);
+}
+.preview-frame {
+  width: 100%; height: 460px; border: none;
+  background: #fff; border-radius: 0 0 var(--radius) var(--radius);
+}
+.create-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.create-form { display: flex; flex-direction: column; }
+.create-preview { display: flex; flex-direction: column; }
+.create-preview .preview-frame { flex: 1; min-height: 380px; border-radius: 8px; border: 1px solid var(--border); }
+@media (max-width: 900px) { .create-grid { grid-template-columns: 1fr; } }
+
 /* ============================================================
    DELAY CONTROLS
    ============================================================ */
@@ -905,7 +983,7 @@ input[type=range]::-webkit-slider-thumb {
     <div class="panel" id="panel-3">
       <div class="page-header">
         <div class="page-title">Choose a Template</div>
-        <div class="page-subtitle">Select a campaign template. You can add more in the <code>templates/</code> folder.</div>
+        <div class="page-subtitle">Select a template, <b>preview</b> it, or <b>create your own</b> — new templates save automatically.</div>
       </div>
 
       <div id="templateGrid" class="template-grid"></div>
@@ -1025,6 +1103,73 @@ input[type=range]::-webkit-slider-thumb {
     </div>
 
   </main>
+</div>
+
+<!-- ======================================================
+     MODAL: Template Preview
+     ====================================================== -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i data-lucide="eye"></i> <span id="previewModalTitle">Preview</span></div>
+      <button class="modal-close" onclick="closePreview()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <iframe id="previewFrame" class="preview-frame" title="Template preview"></iframe>
+    </div>
+    <div class="modal-footer">
+      <span style="font-size:12px;color:var(--muted);">Shown with sample data (Alex Johnson / alex@example.com).</span>
+      <button class="btn btn-primary" onclick="closePreview()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     MODAL: Create New Template
+     ====================================================== -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><i data-lucide="plus"></i> New Template</div>
+      <button class="modal-close" onclick="closeCreateModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body create-grid">
+      <!-- Left: form -->
+      <div class="create-form">
+        <div class="form-row">
+          <label>Template Name</label>
+          <input class="form-control" id="tplName" placeholder="e.g. Summer Sale" oninput="saveDraft()" />
+        </div>
+        <div class="form-row">
+          <label>Subject Line</label>
+          <input class="form-control" id="tplSubject" placeholder="Hi {name}, a special offer inside" oninput="saveDraft(); previewDraft();" />
+        </div>
+        <div class="form-row" style="flex:1;display:flex;flex-direction:column;">
+          <label>Email Body (HTML)</label>
+          <textarea class="form-control" id="tplBody" placeholder="<h1>Hello {name}</h1><p>Your email here…</p>"
+            style="min-height:220px;resize:vertical;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;"
+            oninput="saveDraft(); previewDraft();"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Detected Fields (features)</label>
+          <div id="tplFields" class="template-fields"></div>
+        </div>
+        <div class="alert alert-error" id="createErr"></div>
+      </div>
+      <!-- Right: live preview -->
+      <div class="create-preview">
+        <div class="section-label" style="margin-bottom:8px;">Live Preview</div>
+        <iframe id="draftFrame" class="preview-frame" title="Draft preview"></iframe>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span style="font-size:12px;color:var(--muted);"><i data-lucide="save" style="width:13px;height:13px;vertical-align:-2px;"></i> Draft auto-saves as you type.</span>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" onclick="previewDraft()"><i data-lucide="refresh-cw"></i> Refresh Preview</button>
+        <button class="btn btn-primary" id="saveTplBtn" onclick="saveTemplate()">Save Template</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ============================================================
@@ -1247,35 +1392,167 @@ zone.addEventListener('drop', e => {
 
 /* ── Templates ─────────────────────────────────────────── */
 async function loadTemplates() {
+  const grid = document.getElementById('templateGrid');
   try {
     const templates = await fetch(API + '/api/templates').then(r => r.json());
-    const grid = document.getElementById('templateGrid');
 
-    if (!templates.length) {
-      grid.innerHTML = '<div class="empty-state">No templates found. Add folders in the <code>templates/</code> directory.</div>';
-      return;
-    }
+    // Restore a previously selected template (survives refresh / navigating back).
+    if (!state.campaign) state.campaign = localStorage.getItem('mf_campaign') || null;
 
-    grid.innerHTML = templates.map(t => `
-      <div class="template-card" data-name="${t.name}" onclick="selectTemplate('${t.name}')">
+    const cards = templates.map(t => {
+      const sel = t.name === state.campaign ? ' selected' : '';
+      return `
+      <div class="template-card${sel}" data-name="${t.name}" onclick="selectTemplate('${t.name}')">
         <div class="template-check"><i data-lucide="check"></i></div>
         <div class="template-name">${capitalize(t.name)}</div>
-        <div class="template-subject">${t.subject}</div>
+        <div class="template-subject">${escapeHtml(t.subject)}</div>
         <div class="template-fields">
           ${t.fields.map(f => `<span class="template-field">{${f}}</span>`).join('')}
         </div>
-      </div>
-    `).join('');
+        <button class="template-preview-btn" onclick="event.stopPropagation(); openPreview('${t.name}')">
+          <i data-lucide="eye"></i> Preview
+        </button>
+      </div>`;
+    }).join('');
+
+    // Always show the "add new template" card at the end.
+    const addCard = `
+      <div class="template-card add-card" onclick="openCreateModal()">
+        <div class="add-plus">+</div>
+        <div class="template-name">Add New Template</div>
+        <div class="template-subject" style="white-space:normal;">Create your own with live preview — saved automatically.</div>
+      </div>`;
+
+    grid.innerHTML = cards + addCard;
+    if (window.lucide) lucide.createIcons();
   } catch (e) {
-    document.getElementById('templateErr').textContent = 'Could not load templates.';
-    document.getElementById('templateErr').classList.add('show');
+    grid.innerHTML = `
+      <div class="template-card add-card" onclick="openCreateModal()">
+        <div class="add-plus">+</div>
+        <div class="template-name">Add New Template</div>
+        <div class="template-subject" style="white-space:normal;">Backend offline — connect it to load & save templates.</div>
+      </div>`;
+    if (window.lucide) lucide.createIcons();
   }
 }
 
 function selectTemplate(name) {
   state.campaign = name;
+  localStorage.setItem('mf_campaign', name);   // persist selection
   document.querySelectorAll('.template-card').forEach(c =>
     c.classList.toggle('selected', c.dataset.name === name));
+}
+
+/* ── Template Preview (existing templates) ─────────────── */
+function openPreview(name) {
+  document.getElementById('previewModalTitle').textContent = capitalize(name);
+  const frame = document.getElementById('previewFrame');
+  frame.src = API + '/api/templates/' + encodeURIComponent(name) + '/preview';
+  document.getElementById('previewModal').classList.add('show');
+}
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('show');
+  document.getElementById('previewFrame').src = 'about:blank';
+}
+
+/* ── Create New Template ───────────────────────────────── */
+const DRAFT_KEY = 'mf_template_draft';
+
+function openCreateModal() {
+  document.getElementById('createModal').classList.add('show');
+  restoreDraft();
+  refreshDraftFields();
+  if (window.lucide) lucide.createIcons();
+}
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('show');
+}
+
+// Autosave the in-progress template so a refresh / coming back keeps the work.
+function saveDraft() {
+  const draft = {
+    name:    document.getElementById('tplName').value,
+    subject: document.getElementById('tplSubject').value,
+    body:    document.getElementById('tplBody').value,
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  refreshDraftFields();
+}
+function restoreDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    if (!document.getElementById('tplName').value)    document.getElementById('tplName').value = d.name || '';
+    if (!document.getElementById('tplSubject').value) document.getElementById('tplSubject').value = d.subject || '';
+    if (!document.getElementById('tplBody').value)    document.getElementById('tplBody').value = d.body || '';
+  } catch (e) {}
+}
+
+// Detect {placeholders} = the "features" of the template, live.
+function refreshDraftFields() {
+  const text = document.getElementById('tplSubject').value + ' ' + document.getElementById('tplBody').value;
+  const fields = [...new Set([...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]))];
+  const box = document.getElementById('tplFields');
+  box.innerHTML = fields.length
+    ? fields.map(f => `<span class="template-field">{${f}}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:12px;">Type {name}, {email}, etc. to add personalization fields.</span>';
+}
+
+// Live preview of the unsaved draft, rendered in the iframe with sample data.
+function previewDraft() {
+  let body = document.getElementById('tplBody').value || '<p style="color:#888">Nothing to preview yet.</p>';
+  const sample = { name: 'Alex Johnson', email: 'alex@example.com' };
+  body = body.replace(/\{(\w+)\}/g, (_, f) => sample[f] || `[${f}]`);
+  const frame = document.getElementById('draftFrame');
+  frame.srcdoc = body;
+}
+
+async function saveTemplate() {
+  const name    = document.getElementById('tplName').value.trim();
+  const subject = document.getElementById('tplSubject').value.trim();
+  const body    = document.getElementById('tplBody').value.trim();
+  const err = document.getElementById('createErr');
+  err.classList.remove('show');
+
+  if (!name) { err.textContent = 'Please give the template a name.'; err.classList.add('show'); return; }
+  if (!body) { err.textContent = 'The email body (HTML) cannot be empty.'; err.classList.add('show'); return; }
+
+  const btn = document.getElementById('saveTplBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+  try {
+    const res = await fetch(API + '/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, subject, body }),
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      err.textContent = e.detail || 'Could not save template.';
+      err.classList.add('show');
+      btn.disabled = false; btn.innerHTML = 'Save Template';
+      return;
+    }
+    const saved = await res.json();
+    localStorage.removeItem(DRAFT_KEY);            // clear the draft once saved
+    document.getElementById('tplName').value = '';
+    document.getElementById('tplSubject').value = '';
+    document.getElementById('tplBody').value = '';
+    closeCreateModal();
+    await loadTemplates();
+    selectTemplate(saved.name);                    // auto-select the new one
+    btn.disabled = false; btn.innerHTML = 'Save Template';
+  } catch (e) {
+    err.textContent = 'Request failed: ' + e.message;
+    err.classList.add('show');
+    btn.disabled = false; btn.innerHTML = 'Save Template';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 }
 
 /* ── Delay / Max Controls ──────────────────────────────── */
