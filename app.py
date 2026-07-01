@@ -32,7 +32,7 @@ import openpyxl
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 # ---------------------------------------------------------------------------
@@ -307,8 +307,17 @@ async def login(payload: dict, response: Response):
 @app.post("/api/logout")
 async def logout(response: Response):
     # Clears the session cookie so the next load of "/" serves the landing page.
-    response.delete_cookie(key="auth_token")
+    response.delete_cookie(key="auth_token", path="/")
     return {"success": True}
+
+
+@app.get("/logout")
+async def logout_redirect():
+    # Server-side logout: delete the cookie AND redirect home in one response.
+    # Robust against browser caching / client-side timing issues.
+    resp = RedirectResponse(url="/", status_code=303)
+    resp.delete_cookie(key="auth_token", path="/")
+    return resp
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -322,7 +331,8 @@ async def dashboard(request: Request):
     if not os.path.exists(html_path):
         return HTMLResponse("<h1>Page not found.</h1>", status_code=500)
     with open(html_path, encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+        # no-store so the browser never serves a stale (authed) page after logout.
+        return HTMLResponse(f.read(), headers={"Cache-Control": "no-store, must-revalidate"})
 
 
 @app.get("/config.js")

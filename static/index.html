@@ -1773,21 +1773,27 @@ async function loadLogs() {
 /* ── Logout ────────────────────────────────────────────── */
 async function logout() {
   // Block logout mid-campaign to avoid orphaning a running send.
-  const st = await fetch(API + '/api/status').then(r => r.json()).catch(() => ({ running: false }));
-  if (st.running && !confirm('A campaign is currently running. Log out anyway?')) return;
+  let running = false;
+  try {
+    const st = await fetch(API + '/api/status').then(r => r.json());
+    running = !!st.running;
+  } catch (e) { /* backend offline — allow logout anyway */ }
+  if (running && !confirm('A campaign is currently running. Log out anyway?')) return;
 
   const btn = document.getElementById('logoutBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner" style="border-top-color:#ef6f6f;"></span> Logging out…';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner" style="border-top-color:#ef6f6f;"></span> Logging out…';
+  }
 
   // Close any live event stream and wipe in-memory credentials.
   try { if (_sse) _sse.close(); } catch (e) {}
   state.email = ''; state.password = ''; state.senderName = '';
 
-  try { await fetch(API + '/api/logout', { method: 'POST' }); } catch (e) {}
-
-  // Redirect to home — the cleared cookie makes "/" serve the landing page.
-  window.location.href = API + '/';
+  // Server-side logout: /logout deletes the cookie and 303-redirects to home.
+  // Using a full navigation (not fetch) guarantees the cookie is cleared and
+  // the landing page is served fresh.
+  window.location.href = API + '/logout';
 }
 
 /* ── Helpers ───────────────────────────────────────────── */
