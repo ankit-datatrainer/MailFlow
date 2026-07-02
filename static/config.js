@@ -9,4 +9,4 @@
 
        window.MAILFLOW_API_BASE = "https://mailflow-api.onrender.com";
    ============================================================ */
-window.MAILFLOW_API_BASE = "";
+window.MAILFLOW_API_BASE = "https://mailflow-api-vkz4.onrender.com";
