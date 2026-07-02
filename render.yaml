@@ -7,7 +7,10 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
+    healthCheckPath: /api/status
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: ALLOWED_ORIGINS
-        # Replace with your Vercel URL after the frontend is deployed.
-        value: "*"
+        # Your Vercel frontend origin (so the API accepts its requests).
+        value: "https://mail-flow-xi.vercel.app"
